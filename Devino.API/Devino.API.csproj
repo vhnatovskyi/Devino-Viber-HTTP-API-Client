@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
-    <Version>0.0.1.123</Version>
+    <Version>0.0.1.192</Version>
     <Authors>V.Gnatovskyi</Authors>
     <Description>Viber HTTP API Client for Devino.</Description>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
