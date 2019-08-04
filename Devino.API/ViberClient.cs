@@ -22,7 +22,7 @@ namespace Devino.API
         protected string providerUrl { get; set; }
         protected string providerStatusUrl { get; set; }
 
-        protected Dictionary<ContentType, string> ContentTypes
+        protected virtual Dictionary<ContentType, string> ContentTypes
         {
             get
             {
@@ -31,6 +31,18 @@ namespace Devino.API
                 contentTypes.Add(ContentType.BUTTON, "button");
                 contentTypes.Add(ContentType.IMAGE, "image");
                 return contentTypes;
+            }
+        }
+        protected virtual Dictionary<PriorityType, string> PriorityTypes
+        {
+            get
+            {
+                Dictionary<PriorityType, string> priorityType = new Dictionary<PriorityType, string>(4);
+                priorityType.Add(PriorityType.LOW, "low");
+                priorityType.Add(PriorityType.NORMAL, "normal");
+                priorityType.Add(PriorityType.HIGH, "high");
+                priorityType.Add(PriorityType.REALTIME, "realtime");
+                return priorityType;
             }
         }
         #endregion ProtectedVariable
@@ -49,8 +61,10 @@ namespace Devino.API
             this.providerStatusUrl = providerStatusUrl;
         }
         #region Request
-        public virtual SendingReplay SendMessage(string phone, string sourceAddress, string messageText, ContentType contentType = ContentType.TEXT, string type = "viber", string priority = "low",
-            string smsText = null, string smsSourceAddres = null, string comment = null, string buttonUrl = null, string buttonCaption = null, string imageUrl = null, bool resendSms = true)
+        public virtual SendingReplay SendMessage(string phone, string sourceAddress, string messageText,
+            ContentType contentType = ContentType.TEXT, PriorityType priority = PriorityType.LOW, string type = "viber",
+            string smsText = null, string smsSourceAddres = null, string comment = null, string buttonUrl = null,
+            string buttonCaption = null, string imageUrl = null, bool resendSms = true)
         {
             string result = string.Empty;
             SendingReplay response = null;
@@ -59,7 +73,7 @@ namespace Devino.API
             string encoded = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes($"{login}:{password}"));
             request.Headers.Add("Authorization", $"Basic {encoded}");
             request.ContentType = "application/json";
-            MessageRequestBody body = BuildBody(phone, sourceAddress, messageText,contentType, type, priority, smsText, smsSourceAddres, comment, buttonUrl, buttonCaption, imageUrl, resendSms);
+            MessageRequestBody body = BuildBody(phone, sourceAddress, messageText, contentType, type, priority, smsText, smsSourceAddres, comment, buttonUrl, buttonCaption, imageUrl, resendSms);
             using (StreamWriter streamWriter = new StreamWriter(request.GetRequestStream()))
             {
                 streamWriter.Write(new JavaScriptSerializer().Serialize(body));
@@ -74,16 +88,16 @@ namespace Devino.API
             }
             return response;
         }
-        public virtual StatusResponse GetStatusMessage(string messageId, out string resultResponse)
+        public virtual StatusResponse GetStatusMessage(long messageId, out string resultResponse)
         {
             StatusResponse response = null;
-            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(providerUrl);
+            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(providerStatusUrl);
             request.Method = "POST";
             string encoded = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes($"{login}:{password}"));
             request.Headers.Add("Authorization", $"Basic {encoded}");
             request.ContentType = "application/json";
 
-            StatusRequestBody body = BuildBody(new List<string> { new string(messageId) });
+            StatusRequestBody body = BuildBody(new List<long>() { messageId });
 
             using (StreamWriter streamWriter = new StreamWriter(request.GetRequestStream()))
             {
@@ -100,11 +114,10 @@ namespace Devino.API
             }
             return response;
         }
-
-        public virtual StatusResponse GetStatusMessages(List<string> messagesId, out string resultResponse)
+        public virtual StatusResponse GetStatusMessages(List<long> messagesId, out string resultResponse)
         {
             StatusResponse response = null;
-            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(providerUrl);
+            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(providerStatusUrl);
             request.Method = "POST";
             string encoded = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes($"{login}:{password}"));
             request.Headers.Add("Authorization", $"Basic {encoded}");
@@ -130,7 +143,7 @@ namespace Devino.API
         #endregion Request
         #endregion Public
         #region Protected
-        protected MessageRequestBody BuildBody(string phone, string sourceAddress, string messageText, ContentType contentType = ContentType.TEXT, string type = "viber", string priority = "low",
+        protected MessageRequestBody BuildBody(string phone, string sourceAddress, string messageText, ContentType contentType = ContentType.TEXT, string type = "viber", PriorityType priority = PriorityType.LOW,
             string smsText = null, string smsSourceAddres = null, string comment = null, string buttonUrl = null, string buttonCaption = null, string imageUrl = null, bool resendSms = true)
         {
             MessageContent content = new MessageContent()
@@ -143,7 +156,7 @@ namespace Devino.API
             Message message = new Message()
             {
                 address = phone,
-                priority = priority,
+                priority = PriorityTypes[priority],
                 content = content,
                 comment = comment,
                 subject = sourceAddress,
@@ -166,7 +179,7 @@ namespace Devino.API
             return body;
         }
 
-        protected StatusRequestBody BuildBody(List<string> messages)
+        protected StatusRequestBody BuildBody(List<long> messages)
         {
             StatusRequestBody body = new StatusRequestBody()
             {

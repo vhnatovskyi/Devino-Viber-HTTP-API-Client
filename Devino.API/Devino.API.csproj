@@ -2,11 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
-    <Version>0.0.1</Version>
+    <Version>0.0.1.123</Version>
     <Authors>V.Gnatovskyi</Authors>
     <Description>Viber HTTP API Client for Devino.</Description>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl></PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Gnatovskyi/Devino-Viber-HTTP-API-Client.git</RepositoryUrl>
+    <RepositoryType />
+    <PackageIconUrl>https://code.dlang.org/packages/appbase/logo</PackageIconUrl>
+    <PackageTags>API Client</PackageTags>
+    <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>
