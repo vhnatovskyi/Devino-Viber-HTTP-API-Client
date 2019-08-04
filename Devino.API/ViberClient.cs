@@ -88,33 +88,21 @@ namespace Devino.API
             }
             return response;
         }
+
+
+        public virtual StatusResponse GetStatusMessage(long messageId)
+        {
+            return GetStatusMessage(messageId, out string result);
+        }
+        public virtual StatusResponse GetStatusMessage(List<long> messagesId)
+        {
+            return GetStatusMessage(messagesId, out string result);
+        }
         public virtual StatusResponse GetStatusMessage(long messageId, out string resultResponse)
         {
-            StatusResponse response = null;
-            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(providerStatusUrl);
-            request.Method = "POST";
-            string encoded = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes($"{login}:{password}"));
-            request.Headers.Add("Authorization", $"Basic {encoded}");
-            request.ContentType = "application/json";
-
-            StatusRequestBody body = BuildBody(new List<long>() { messageId });
-
-            using (StreamWriter streamWriter = new StreamWriter(request.GetRequestStream()))
-            {
-                streamWriter.Write(new JavaScriptSerializer().Serialize(body));
-            }
-
-            using (HttpWebResponse httpResponse = (HttpWebResponse)request.GetResponse())
-            {
-                using (StreamReader streamReader = new StreamReader(httpResponse.GetResponseStream()))
-                {
-                    resultResponse = streamReader.ReadToEnd();
-                }
-                response = new JavaScriptSerializer().Deserialize<StatusResponse>(resultResponse);
-            }
-            return response;
+            return GetStatusMessage(new List<long>() { messageId }, out resultResponse);
         }
-        public virtual StatusResponse GetStatusMessages(List<long> messagesId, out string resultResponse)
+        public virtual StatusResponse GetStatusMessage(List<long> messagesId, out string resultResponse)
         {
             StatusResponse response = null;
             HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(providerStatusUrl);
