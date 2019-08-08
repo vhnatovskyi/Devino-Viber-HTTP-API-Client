@@ -1,4 +1,4 @@
-﻿using Devino.API.Models.Viber;
+using Devino.API.Models.Viber;
 using Devino.API.Models.Viber.Request;
 using Devino.API.Models.Viber.Response;
 using Nancy.Json;
@@ -23,7 +23,9 @@ namespace Devino.API
         protected string providerUrl { get; }
         protected string providerStatusUrl { get; }
 
+
         protected bool resendSms { get; } 
+      
         protected string sourceSmsAddress { get; }
         protected string sourceViberAddress { get; }
 
@@ -60,8 +62,10 @@ namespace Devino.API
         /// <param name="sourceSmsAddress">Name from whom sms Message will come. If sourceSmsAddress = null then even sourceViberAddres</param>
         /// <param name="resendSMS">Forward SMS true = send, false - not send!</param>
         public ViberClient(string login, string password, string sourceViberAddress,
+
             string sourceSmsAddress = null, bool resendSMS = false,int livePeriod = 1, 
             int sendingCount = 3, int liveTimeMessage = 300, 
+                           
             string providerUrl = "https://viber.devinotele.com:444/send",
             string providerStatusUrl = "https://viber.devinotele.com:444/status")
         {
