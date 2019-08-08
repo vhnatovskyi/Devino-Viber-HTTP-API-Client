@@ -19,8 +19,13 @@ namespace Devino.API
 
         protected string login { get; set; }
         protected string password { get; set; }
-        protected string providerUrl { get; set; }
-        protected string providerStatusUrl { get; set; }
+
+        protected string providerUrl { get; }
+        protected string providerStatusUrl { get; }
+
+        protected bool resendSms { get; } 
+        protected string sourceSmsAddress { get; }
+        protected string sourceViberAddress { get; }
 
         protected virtual Dictionary<ContentType, string> ContentTypes
         {
@@ -47,24 +52,47 @@ namespace Devino.API
         }
         #endregion ProtectedVariable
         #region Public
-        public ViberClient(string login, string password, 
-            int livePeriod = 1, int sendingCount = 3, int liveTimeMessage = 300, 
+        /// <summary>
+        /// </summary>
+        /// <param name="login">Login devino</param>
+        /// <param name="password">Password devino</param>
+        /// <param name="sourceViberAddress">Name from whom Viber Message will come.</param>
+        /// <param name="sourceSmsAddress">Name from whom sms Message will come. If sourceSmsAddress = null then even sourceViberAddres</param>
+        /// <param name="resendSMS">Forward SMS true = send, false - not send!</param>
+        public ViberClient(string login, string password, string sourceViberAddress,
+            string sourceSmsAddress = null, bool resendSMS = false,int livePeriod = 1, 
+            int sendingCount = 3, int liveTimeMessage = 300, 
             string providerUrl = "https://viber.devinotele.com:444/send",
             string providerStatusUrl = "https://viber.devinotele.com:444/status")
         {
             this.login = login;
             this.password = password;
+            this.resendSms = resendSMS;
             this.livePeriod = livePeriod;
             this.sendingCount = sendingCount;
             this.liveTimeMessage = liveTimeMessage;
             this.providerUrl = providerUrl;
             this.providerStatusUrl = providerStatusUrl;
+            this.sourceViberAddress = sourceViberAddress;
+            this.sourceSmsAddress = sourceSmsAddress ?? sourceViberAddress;
         }
         #region Request
-        public virtual SendingReplay SendMessage(string phone, string sourceAddress, string messageText,
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="phone">Phone number for send message</param>
+        /// <param name="messageText">Message for send viber</param>
+        /// <param name="contentType">Type message TEXT, BUTTON, IMAGE</param>
+        /// <param name="priority">Set up priority message delivery LOW, NORMAL, HIGT or REALTIME</param>
+        /// <param name="smsText">SMS text message if smsText even null then even viber message</param>
+        /// <param name="buttonUrl">Button action URL address in message</param>
+        /// <param name="buttonCaption">Button name in message</param>
+        /// <param name="imageUrl">URL image in message</param>
+        /// <returns></returns>
+        public virtual SendingReplay SendMessage(string phone, string messageText,
             ContentType contentType = ContentType.TEXT, PriorityType priority = PriorityType.LOW, string type = "viber",
-            string smsText = null, string smsSourceAddres = null, string comment = null, string buttonUrl = null,
-            string buttonCaption = null, string imageUrl = null, bool resendSms = true)
+            string smsText = null, string comment = null, string buttonUrl = null,
+            string buttonCaption = null, string imageUrl = null)
         {
             string result = string.Empty;
             SendingReplay response = null;
@@ -73,7 +101,7 @@ namespace Devino.API
             string encoded = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes($"{login}:{password}"));
             request.Headers.Add("Authorization", $"Basic {encoded}");
             request.ContentType = "application/json";
-            MessageRequestBody body = BuildBody(phone, sourceAddress, messageText, contentType, type, priority, smsText, smsSourceAddres, comment, buttonUrl, buttonCaption, imageUrl, resendSms);
+            MessageRequestBody body = BuildBody(phone, sourceViberAddress, messageText, contentType, type, priority, smsText, sourceSmsAddress, comment, buttonUrl, buttonCaption, imageUrl, resendSms);
             using (StreamWriter streamWriter = new StreamWriter(request.GetRequestStream()))
             {
                 streamWriter.Write(new JavaScriptSerializer().Serialize(body));
