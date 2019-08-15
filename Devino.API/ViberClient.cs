@@ -12,7 +12,7 @@ namespace Devino.API
 {
     public class ViberClient
     {
-        #region ProtectedVariable
+        #region Protected
         protected int livePeriod { get; set; }
         protected int sendingCount { get; set; }
         protected int liveTimeMessage { get; set; }
@@ -23,13 +23,12 @@ namespace Devino.API
         protected string providerUrl { get; }
         protected string providerStatusUrl { get; }
 
-
         protected bool resendSms { get; } 
       
         protected string sourceSmsAddress { get; }
         protected string sourceViberAddress { get; }
 
-        protected virtual Dictionary<ContentType, string> ContentTypes
+        protected static Dictionary<ContentType, string> ContentTypes
         {
             get
             {
@@ -40,7 +39,7 @@ namespace Devino.API
                 return contentTypes;
             }
         }
-        protected virtual Dictionary<PriorityType, string> PriorityTypes
+        protected static Dictionary<PriorityType, string> PriorityTypes
         {
             get
             {
@@ -52,119 +51,54 @@ namespace Devino.API
                 return priorityType;
             }
         }
-        #endregion ProtectedVariable
-        #region Public
-        /// <summary>
-        /// </summary>
-        /// <param name="login">Login devino</param>
-        /// <param name="password">Password devino</param>
-        /// <param name="sourceViberAddress">Name from whom Viber Message will come.</param>
-        /// <param name="sourceSmsAddress">Name from whom sms Message will come. If sourceSmsAddress = null then even sourceViberAddres</param>
-        /// <param name="resendSMS">Forward SMS true = send, false - not send!</param>
-        public ViberClient(string login, string password, string sourceViberAddress,
 
-            string sourceSmsAddress = null, bool resendSMS = false,int livePeriod = 1, 
-            int sendingCount = 3, int liveTimeMessage = 300, 
-                           
-            string providerUrl = "https://viber.devinotele.com:444/send",
-            string providerStatusUrl = "https://viber.devinotele.com:444/status")
+        protected string GetResponse(object body, string url)
         {
-            this.login = login;
-            this.password = password;
-            this.resendSms = resendSMS;
-            this.livePeriod = livePeriod;
-            this.sendingCount = sendingCount;
-            this.liveTimeMessage = liveTimeMessage;
-            this.providerUrl = providerUrl;
-            this.providerStatusUrl = providerStatusUrl;
-            this.sourceViberAddress = sourceViberAddress;
-            this.sourceSmsAddress = sourceSmsAddress ?? sourceViberAddress;
-        }
-        #region Request
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="phone">Phone number for send message</param>
-        /// <param name="messageText">Message for send viber</param>
-        /// <param name="contentType">Type message TEXT, BUTTON, IMAGE</param>
-        /// <param name="priority">Set up priority message delivery LOW, NORMAL, HIGT or REALTIME</param>
-        /// <param name="smsText">SMS text message if smsText even null then even viber message</param>
-        /// <param name="buttonUrl">Button action URL address in message</param>
-        /// <param name="buttonCaption">Button name in message</param>
-        /// <param name="imageUrl">URL image in message</param>
-        /// <returns></returns>
-        public virtual SendingReplay SendMessage(string phone, string messageText,
-            ContentType contentType = ContentType.TEXT, PriorityType priority = PriorityType.LOW, string type = "viber",
-            string smsText = null, string comment = null, string buttonUrl = null,
-            string buttonCaption = null, string imageUrl = null)
-        {
-            string result = string.Empty;
-            SendingReplay response = null;
-            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(providerUrl);
+            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url);
             request.Method = "POST";
             string encoded = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes($"{login}:{password}"));
             request.Headers.Add("Authorization", $"Basic {encoded}");
             request.ContentType = "application/json";
-            MessageRequestBody body = BuildBody(phone, sourceViberAddress, messageText, contentType, type, priority, smsText, sourceSmsAddress, comment, buttonUrl, buttonCaption, imageUrl, resendSms);
             using (StreamWriter streamWriter = new StreamWriter(request.GetRequestStream()))
             {
                 streamWriter.Write(new JavaScriptSerializer().Serialize(body));
             }
-            using (HttpWebResponse httpResponse = (HttpWebResponse)request.GetResponse())
+            try
             {
-                using (StreamReader streamReader = new StreamReader(httpResponse.GetResponseStream()))
+                using (HttpWebResponse httpResponse = (HttpWebResponse)request.GetResponse())
                 {
-                    result = streamReader.ReadToEnd();
+                    using (StreamReader streamReader = new StreamReader(httpResponse.GetResponseStream()))
+                    {
+                        return streamReader.ReadToEnd();
+                    }
                 }
-                response = new JavaScriptSerializer().Deserialize<SendingReplay>(result);
             }
-            return response;
-        }
-
-
-        public virtual StatusResponse GetStatusMessage(long messageId)
-        {
-            return GetStatusMessage(messageId, out string result);
-        }
-        public virtual StatusResponse GetStatusMessage(List<long> messagesId)
-        {
-            return GetStatusMessage(messagesId, out string result);
-        }
-        public virtual StatusResponse GetStatusMessage(long messageId, out string resultResponse)
-        {
-            return GetStatusMessage(new List<long>() { messageId }, out resultResponse);
-        }
-        public virtual StatusResponse GetStatusMessage(List<long> messagesId, out string resultResponse)
-        {
-            StatusResponse response = null;
-            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(providerStatusUrl);
-            request.Method = "POST";
-            string encoded = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes($"{login}:{password}"));
-            request.Headers.Add("Authorization", $"Basic {encoded}");
-            request.ContentType = "application/json";
-
-            StatusRequestBody body = BuildBody(messagesId);
-
-            using (StreamWriter streamWriter = new StreamWriter(request.GetRequestStream()))
+            catch (WebException exception)
             {
-                streamWriter.Write(new JavaScriptSerializer().Serialize(body));
-            }
-
-            using (HttpWebResponse httpResponse = (HttpWebResponse)request.GetResponse())
-            {
-                using (StreamReader streamReader = new StreamReader(httpResponse.GetResponseStream()))
+                if (exception.Response != null)
                 {
-                    resultResponse = streamReader.ReadToEnd();
+                    Stream stream = exception.Response.GetResponseStream();
+                    if (stream != null)
+                    {
+                        using (StreamReader reader = new StreamReader(stream))
+                        {
+                            string content = reader.ReadToEnd();
+                            if(!string.IsNullOrEmpty(content))
+                                throw new ViberApiException(new JavaScriptSerializer().Deserialize<ErrorResult>(content));
+                        }
+                    }
                 }
-                response = new JavaScriptSerializer().Deserialize<StatusResponse>(resultResponse);
+                throw;
             }
-            return response;
         }
-        #endregion Request
-        #endregion Public
-        #region Protected
-        protected MessageRequestBody BuildBody(string phone, string sourceAddress, string messageText, ContentType contentType = ContentType.TEXT, string type = "viber", PriorityType priority = PriorityType.LOW,
-            string smsText = null, string smsSourceAddres = null, string comment = null, string buttonUrl = null, string buttonCaption = null, string imageUrl = null, bool resendSms = true)
+        protected SendingReplay GetSendingReplay(string model) =>
+            new JavaScriptSerializer().Deserialize<SendingReplay>(model);
+        protected StatusResponse GetStatusResponse(string model) =>
+            new JavaScriptSerializer().Deserialize<StatusResponse>(model);
+        protected MessageRequestBody BuildBody(string phone, string sourceAddress, string messageText,
+            ContentType contentType = ContentType.TEXT, string type = "viber", PriorityType priority = PriorityType.LOW,
+            string smsText = null, string smsSourceAddres = null, string comment = null, string buttonUrl = null,
+            string buttonCaption = null, string imageUrl = null, bool resendSms = true)
         {
             MessageContent content = new MessageContent()
             {
@@ -187,10 +121,7 @@ namespace Devino.API
                 smsSrcAddress = smsSourceAddres ?? sourceAddress,
                 smsValidityPeriodSec = liveTimeMessage * 3,
             };
-
-            List<Message> messages = new List<Message>();
-            messages.Add(message);
-
+            List<Message> messages = new List<Message>() { message };
             MessageRequestBody body = new MessageRequestBody()
             {
                 resendSms = resendSms,
@@ -199,14 +130,81 @@ namespace Devino.API
             return body;
         }
 
-        protected StatusRequestBody BuildBody(List<long> messages)
-        {
-            StatusRequestBody body = new StatusRequestBody()
-            {
-                messages = messages,
-            };
-            return body;
-        }
         #endregion Protected
+        #region Public
+
+            #region Constructor
+        public ViberClient(string login, string password, string sourceViberAddress,
+            string sourceSmsAddress = null, bool resendSMS = false,int livePeriod = 1, 
+            int sendingCount = 3, int liveTimeMessage = 300,                            
+            string providerUrl = "https://viber.devinotele.com:444/send",
+            string providerStatusUrl = "https://viber.devinotele.com:444/status")
+        {
+            this.login = login;
+            this.password = password;
+            this.resendSms = resendSMS;
+            this.livePeriod = livePeriod;
+            this.sendingCount = sendingCount;
+            this.liveTimeMessage = liveTimeMessage;
+            this.providerUrl = providerUrl;
+            this.providerStatusUrl = providerStatusUrl;
+            this.sourceViberAddress = sourceViberAddress;
+            this.sourceSmsAddress = sourceSmsAddress ?? sourceViberAddress;
+        }
+            #endregion Constructor
+
+            #region Request
+
+        #region SendMessage
+        public virtual SendingReplay SendMessage(string phone, string messageText,
+            ContentType contentType = ContentType.TEXT, PriorityType priority = PriorityType.LOW, string type = "viber",
+            string smsText = null, string comment = null, string buttonUrl = null,
+            string buttonCaption = null, string imageUrl = null) => 
+            SendMessage(BuildBody(phone, sourceViberAddress, messageText, contentType, type, priority, smsText, sourceSmsAddress, comment, buttonUrl, buttonCaption, imageUrl, resendSms));
+        public virtual SendingReplay SendMessage(Message message, bool resendSms = false) =>
+            SendMessage(BuildBody(message, resendSms));
+        public virtual SendingReplay SendMessage(MessageRequestBody body) => 
+            GetSendingReplay(GetResponse(body, providerUrl));
+        public virtual SendingReplay SendMessage(Message message, out string resultResponse, bool resendSms = false) =>
+            SendMessage(BuildBody(message, resendSms), out resultResponse);
+        public virtual SendingReplay SendMessage(MessageRequestBody body, out string resultResponse)
+        {
+            resultResponse = GetResponse(body, providerUrl);
+            return GetSendingReplay(resultResponse);
+        }
+        #endregion SendMessage
+
+                #region GetStatusMessage
+        public virtual StatusResponse GetStatusMessage(long messageId) => 
+            GetStatusMessage(new List<long>() { messageId });
+        public virtual StatusResponse GetStatusMessage(List<long> messagesId) =>
+            GetStatusMessage(BuildBody(messagesId));
+        public virtual StatusResponse GetStatusMessage(StatusRequestBody body) =>
+    GetStatusResponse(GetResponse(body, providerStatusUrl));
+        public virtual StatusResponse GetStatusMessage(long messageId, out string resultResponse) => 
+            GetStatusMessage(new List<long>() { messageId }, out resultResponse);        
+        public virtual StatusResponse GetStatusMessage(List<long> messagesId, out string resultResponse)
+        {            
+            return GetStatusMessage(BuildBody(messagesId), out resultResponse);
+        }
+        public virtual StatusResponse GetStatusMessage(StatusRequestBody body, out string resultResponse)
+        {
+            resultResponse = GetResponse(body, providerStatusUrl);
+            return GetStatusResponse(resultResponse);
+        }
+        #endregion GetStatusMessage
+
+        #endregion Request
+
+            #region BuildBody
+        public MessageRequestBody BuildBody(Message message, bool resendSms) =>
+           new MessageRequestBody() { messages = new List<Message>() { message }, resendSms = resendSms };
+        public StatusRequestBody BuildBody(long message) =>
+            new StatusRequestBody() { messages = new List<long>() { message } };
+        public StatusRequestBody BuildBody(List<long> messages) =>
+            new StatusRequestBody() { messages = messages };
+        #endregion BuildBody
+
+        #endregion Public
     }
 }
