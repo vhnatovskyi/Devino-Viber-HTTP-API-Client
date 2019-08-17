@@ -52,7 +52,7 @@ namespace Devino.API
             }
         }
 
-        protected string GetResponse(object body, string url)
+        protected string Post(object body, string url)
         {
             HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url);
             request.Method = "POST";
@@ -155,7 +155,7 @@ namespace Devino.API
 
             #region Request
 
-        #region SendMessage
+                #region SendMessage
         public virtual SendingReplay SendMessage(string phone, string messageText,
             ContentType contentType = ContentType.TEXT, PriorityType priority = PriorityType.LOW, string type = "viber",
             string smsText = null, string comment = null, string buttonUrl = null,
@@ -164,12 +164,12 @@ namespace Devino.API
         public virtual SendingReplay SendMessage(Message message, bool resendSms = false) =>
             SendMessage(BuildBody(message, resendSms));
         public virtual SendingReplay SendMessage(MessageRequestBody body) => 
-            GetSendingReplay(GetResponse(body, providerUrl));
+            GetSendingReplay(Post(body, providerUrl));
         public virtual SendingReplay SendMessage(Message message, out string resultResponse, bool resendSms = false) =>
             SendMessage(BuildBody(message, resendSms), out resultResponse);
         public virtual SendingReplay SendMessage(MessageRequestBody body, out string resultResponse)
         {
-            resultResponse = GetResponse(body, providerUrl);
+            resultResponse = Post(body, providerUrl);
             return GetSendingReplay(resultResponse);
         }
         #endregion SendMessage
@@ -180,7 +180,7 @@ namespace Devino.API
         public virtual StatusResponse GetStatusMessage(List<long> messagesId) =>
             GetStatusMessage(BuildBody(messagesId));
         public virtual StatusResponse GetStatusMessage(StatusRequestBody body) =>
-    GetStatusResponse(GetResponse(body, providerStatusUrl));
+            GetStatusResponse(Post(body, providerStatusUrl));
         public virtual StatusResponse GetStatusMessage(long messageId, out string resultResponse) => 
             GetStatusMessage(new List<long>() { messageId }, out resultResponse);        
         public virtual StatusResponse GetStatusMessage(List<long> messagesId, out string resultResponse)
@@ -189,7 +189,7 @@ namespace Devino.API
         }
         public virtual StatusResponse GetStatusMessage(StatusRequestBody body, out string resultResponse)
         {
-            resultResponse = GetResponse(body, providerStatusUrl);
+            resultResponse = Post(body, providerStatusUrl);
             return GetStatusResponse(resultResponse);
         }
         #endregion GetStatusMessage
